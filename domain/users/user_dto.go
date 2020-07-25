@@ -2,6 +2,7 @@ package users
 
 import (
 	"github.com/AlexHusleag/bookstore_users-api/utils/errors"
+	"regexp"
 	"strings"
 )
 
@@ -13,9 +14,11 @@ type User struct {
 	DateCreated string `json:"date_created"`
 }
 
-func (user *User)Validate() *errors.RestErr {
+func (user *User) Validate() *errors.RestErr {
 	user.Email = strings.TrimSpace(strings.ToLower(user.Email))
-	if user.Email == "" {
+	re := regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
+
+	if user.Email == "" || re.MatchString(user.Email) == false {
 		return errors.NewBadRequestError("Invalid Email Address")
 	}
 	return nil
