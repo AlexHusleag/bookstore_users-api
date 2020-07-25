@@ -13,5 +13,5 @@ func GetNow() time.Time{
 }
 
 func GetNowString() string{
-	GetNow().Format(apiDateLayout)
+	return GetNow().Format(apiDateLayout)
 }
