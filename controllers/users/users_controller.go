@@ -17,16 +17,14 @@ import (
 func CreateUser(c *gin.Context) {
 	var user users.User
 
-	if err := c.ShouldBindJSON(&user); err != nil { // face toata treaba de mai jos scrisa verbose
+	if err := c.ShouldBindJSON(&user); err != nil {
 		restErr := errors.NewBadRequestError("Invalid JSON body")
 		c.JSON(restErr.Status, restErr)
-		//TODO: return bad request to the caller
 		return
 	}
 
 	result, saveErr := services.CreateUser(user)
 	if saveErr != nil {
-		//TODO: handle user creation error
 		c.JSON(saveErr.Status, saveErr)
 		return
 	}
