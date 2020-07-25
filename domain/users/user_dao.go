@@ -14,6 +14,7 @@ import (
 const (
 	uniqueEmail     = "email_UNIQUE"
 	queryInsertUser = "INSERT INTO users(first_name, last_name, email, date_created) VALUES(?, ?, ?, ?);"
+	queryGetUser    = "SELECT * FROM users WHERE id=?;"
 )
 
 var (
@@ -24,17 +25,22 @@ func (user *User) Get() *errors.RestErr {
 	if err := users_db.Client.Ping(); err != nil {
 		panic(err)
 	}
+	statement, err := users_db.Client.Prepare(queryGetUser)
 
-	result := userDB[user.Id]
-	if result == nil {
-		return errors.NewNotFound(fmt.Sprintf("User %d not found", user.Id))
+	if err != nil {
+		return errors.NewInternalServerError(err.Error())
 	}
 
-	user.Id = result.Id
-	user.FirstName = result.FirstName
-	user.LastName = result.LastName
-	user.Email = result.Email
-	user.DateCreated = result.DateCreated
+	defer checkIfDatabaseIsClosed(statement)
+
+	row := statement.QueryRow(&user.Id)
+	if err := row.Scan(&user.Id, &user.FirstName, &user.LastName, &user.Email, &user.DateCreated); err != nil {
+		if err == sql.ErrNoRows {
+			return errors.NewNotFound(fmt.Sprintf("User %d not found", user.Id))
+		}
+		return errors.NewInternalServerError(
+			fmt.Sprintf("Error when trying to get user %d: %s", user.Id, err.Error()))
+	}
 
 	return nil
 }
