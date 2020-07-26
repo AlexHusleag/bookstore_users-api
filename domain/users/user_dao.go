@@ -8,17 +8,12 @@ import (
 	"github.com/AlexHusleag/bookstore_users-api/datasources/mysql/users_db"
 	"github.com/AlexHusleag/bookstore_users-api/utils/date"
 	"github.com/AlexHusleag/bookstore_users-api/utils/errors"
-	"strings"
+	"github.com/AlexHusleag/bookstore_users-api/utils/mysql"
 )
 
 const (
-	uniqueEmail     = "email_UNIQUE"
 	queryInsertUser = "INSERT INTO users(first_name, last_name, email, date_created) VALUES(?, ?, ?, ?);"
 	queryGetUser    = "SELECT * FROM users WHERE id=?;"
-)
-
-var (
-	userDB = make(map[int64]*User)
 )
 
 func (user *User) Get() *errors.RestErr {
@@ -35,11 +30,7 @@ func (user *User) Get() *errors.RestErr {
 
 	row := statement.QueryRow(&user.Id)
 	if err := row.Scan(&user.Id, &user.FirstName, &user.LastName, &user.Email, &user.DateCreated); err != nil {
-		if err == sql.ErrNoRows {
-			return errors.NewNotFound(fmt.Sprintf("User %d not found", user.Id))
-		}
-		return errors.NewInternalServerError(
-			fmt.Sprintf("Error when trying to get user %d: %s", user.Id, err.Error()))
+		return mysql.ParseError(err)
 	}
 
 	return nil
@@ -51,24 +42,19 @@ func (user *User) Save() *errors.RestErr {
 	if err != nil {
 		return errors.NewInternalServerError(err.Error())
 	}
-
 	defer checkIfDatabaseIsClosed(statement)
 
 	user.DateCreated = date.GetNowString()
 
 	insertResult, err := statement.Exec(user.FirstName, user.LastName, user.Email, user.DateCreated)
+
 	if err != nil {
-		if strings.Contains(err.Error(), uniqueEmail) {
-			return errors.NewBadRequestError(fmt.Sprintf("Email %s already exists", user.Email))
-		}
-		return errors.NewInternalServerError(
-			fmt.Sprintf("Failed to save user: %s", err.Error()))
+		return mysql.ParseError(err)
 	}
 
 	userId, err := insertResult.LastInsertId()
 	if err != nil {
-		return errors.NewInternalServerError(
-			fmt.Sprintf("Failed to save user: %s", err.Error()))
+		return mysql.ParseError(err)
 	}
 	user.Id = userId
 
