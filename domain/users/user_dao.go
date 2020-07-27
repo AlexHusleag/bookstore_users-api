@@ -14,6 +14,7 @@ import (
 const (
 	queryInsertUser = "INSERT INTO users(first_name, last_name, email, date_created) VALUES(?, ?, ?, ?);"
 	queryGetUser    = "SELECT * FROM users WHERE id=?;"
+	queryUpdateUser = "UPDATE users SET first_name=?, last_name=?, email=? WHERE id=?"
 )
 
 func (user *User) Get() *errors.RestErr {
@@ -23,6 +24,7 @@ func (user *User) Get() *errors.RestErr {
 	statement, err := users_db.Client.Prepare(queryGetUser)
 
 	if err != nil {
+		fmt.Println(err.Error())
 		return errors.NewInternalServerError(err.Error())
 	}
 
@@ -65,5 +67,21 @@ func checkIfDatabaseIsClosed(statement *sql.Stmt) *errors.RestErr {
 	if err := statement.Close(); err != nil {
 		return errors.NewInternalServerError(fmt.Sprintf("Failed to close the user database %s", err.Error()))
 	}
+	return nil
+}
+
+func (user *User) Update() *errors.RestErr {
+	statement, err := users_db.Client.Prepare(queryUpdateUser)
+
+	if err != nil {
+		return errors.NewInternalServerError(err.Error())
+	}
+	defer checkIfDatabaseIsClosed(statement)
+
+	_, err = statement.Exec(user.FirstName, user.LastName, user.Email, user.Id)
+	if err != nil {
+		return mysql.ParseError(err)
+	}
+
 	return nil
 }
