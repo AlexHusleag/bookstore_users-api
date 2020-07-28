@@ -15,6 +15,7 @@ const (
 	queryInsertUser = "INSERT INTO users(first_name, last_name, email, date_created) VALUES(?, ?, ?, ?);"
 	queryGetUser    = "SELECT * FROM users WHERE id=?;"
 	queryUpdateUser = "UPDATE users SET first_name=?, last_name=?, email=? WHERE id=?"
+	queryDeleteUser = "DELETE FROM users WHERE id=?"
 )
 
 func (user *User) Get() *errors.RestErr {
@@ -63,13 +64,6 @@ func (user *User) Save() *errors.RestErr {
 	return nil
 }
 
-func checkIfDatabaseIsClosed(statement *sql.Stmt) *errors.RestErr {
-	if err := statement.Close(); err != nil {
-		return errors.NewInternalServerError(fmt.Sprintf("Failed to close the user database %s", err.Error()))
-	}
-	return nil
-}
-
 func (user *User) Update() *errors.RestErr {
 	statement, err := users_db.Client.Prepare(queryUpdateUser)
 
@@ -83,5 +77,28 @@ func (user *User) Update() *errors.RestErr {
 		return mysql.ParseError(err)
 	}
 
+	return nil
+}
+
+func (user *User) Delete() *errors.RestErr {
+	statement, err := users_db.Client.Prepare(queryDeleteUser)
+
+	if err != nil {
+		return errors.NewInternalServerError(err.Error())
+	}
+	defer checkIfDatabaseIsClosed(statement)
+
+	_, err = statement.Exec(user.Id)
+	if err != nil {
+		return mysql.ParseError(err)
+	}
+
+	return nil
+}
+
+func checkIfDatabaseIsClosed(statement *sql.Stmt) *errors.RestErr {
+	if err := statement.Close(); err != nil {
+		return errors.NewInternalServerError(fmt.Sprintf("Failed to close the user database %s", err.Error()))
+	}
 	return nil
 }

@@ -48,7 +48,7 @@ func GetUser(c *gin.Context) {
 	c.JSON(http.StatusOK, user)
 }
 
-func UpdateUser(c *gin.Context){
+func UpdateUser(c *gin.Context) {
 	userId, userIdErr := strconv.ParseInt(c.Param("user_id"), 10, 64)
 	if userIdErr != nil {
 		err := errors.NewBadRequestError("user id should be a number")
@@ -68,8 +68,33 @@ func UpdateUser(c *gin.Context){
 	isPatch := c.Request.Method == http.MethodPatch
 
 	result, err := services.UpdateUser(user, isPatch)
-	if err != nil{
+	if err != nil {
 		c.JSON(err.Status, err)
+		// me
+		return
 	}
 	c.JSON(http.StatusOK, result)
+}
+
+func DeleteUser(c *gin.Context) {
+	userId, userIdErr := strconv.ParseInt(c.Param("user_id"), 10, 64)
+	if userIdErr != nil {
+		err := errors.NewBadRequestError("user id should be a number")
+		c.JSON(err.Status, err)
+		return
+	}
+
+	user, userErr := services.GetUser(userId)
+	if userErr != nil {
+		c.JSON(userErr.Status, userErr)
+		return
+	}
+
+	deleteUserErr, err := services.DeleteUser(userId)
+	if err != nil {
+		c.JSON(err.Status, deleteUserErr)
+		return
+	}
+
+	c.JSON(http.StatusOK, user)
 }
