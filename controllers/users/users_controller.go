@@ -3,6 +3,8 @@
 // requests handled by the controller
 // provide the endpoints to interacts against the users API
 
+// domain -> service -> controller (MVC)
+
 package users
 
 import (
@@ -70,7 +72,6 @@ func UpdateUser(c *gin.Context) {
 	result, err := services.UpdateUser(user, isPatch)
 	if err != nil {
 		c.JSON(err.Status, err)
-		// me
 		return
 	}
 	c.JSON(http.StatusOK, result)
@@ -84,7 +85,7 @@ func DeleteUser(c *gin.Context) {
 		return
 	}
 
-	user, userErr := services.GetUser(userId)
+	_, userErr := services.GetUser(userId)
 	if userErr != nil {
 		c.JSON(userErr.Status, userErr)
 		return
@@ -96,5 +97,15 @@ func DeleteUser(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, user)
+	c.JSON(http.StatusOK, map[string]string{"Status": "User deleted"})
+}
+
+func Search(c *gin.Context){
+	status := c.Query("status")
+	users, err := services.FindUsers(status)
+	if err != nil{
+		c.JSON(err.Status, err)
+		return
+	}
+	c.JSON(http.StatusOK, users)
 }

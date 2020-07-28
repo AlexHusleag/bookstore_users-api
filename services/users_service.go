@@ -4,6 +4,7 @@ package services
 
 import (
 	"github.com/AlexHusleag/bookstore_users-api/domain/users"
+	"github.com/AlexHusleag/bookstore_users-api/utils/date"
 	"github.com/AlexHusleag/bookstore_users-api/utils/errors"
 	"regexp"
 )
@@ -18,14 +19,14 @@ func GetUser(userId int64) (*users.User, *errors.RestErr) {
 		return nil, err
 	}
 	return result, nil
-
 }
 
 func CreateUser(user users.User) (*users.User, *errors.RestErr) {
-
 	if err := user.Validate(); err != nil {
 		return nil, err
 	}
+
+	user.DateCreated = date.GetNowString()
 
 	if err := user.Save(); err != nil {
 		return nil, err
@@ -79,4 +80,9 @@ func DeleteUser(userId int64) (*users.User, *errors.RestErr) {
 		return nil, err
 	}
 	return result, nil
+}
+
+func FindUsers(status string) (*[]users.User , *errors.RestErr){
+	user := &users.User{}
+	return user.FindByStatus(status)
 }

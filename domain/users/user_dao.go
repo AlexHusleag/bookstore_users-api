@@ -6,16 +6,16 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/AlexHusleag/bookstore_users-api/datasources/mysql/users_db"
-	"github.com/AlexHusleag/bookstore_users-api/utils/date"
 	"github.com/AlexHusleag/bookstore_users-api/utils/errors"
 	"github.com/AlexHusleag/bookstore_users-api/utils/mysql"
 )
 
 const (
-	queryInsertUser = "INSERT INTO users(first_name, last_name, email, date_created) VALUES(?, ?, ?, ?);"
-	queryGetUser    = "SELECT * FROM users WHERE id=?;"
-	queryUpdateUser = "UPDATE users SET first_name=?, last_name=?, email=? WHERE id=?"
-	queryDeleteUser = "DELETE FROM users WHERE id=?"
+	queryInsertUser       = "INSERT INTO users(first_name, last_name, email, date_created, password, status) VALUES(?, ?, ?, ?, ?, ?);"
+	queryGetUser          = "SELECT id, first_name, last_name, email, date_created FROM users WHERE id=?;"
+	queryUpdateUser       = "UPDATE users SET first_name=?, last_name=?, email=? WHERE id=?;"
+	queryDeleteUser       = "DELETE FROM users WHERE id=?;"
+	queryFindUserByStatus = "SELECT id, first_name, last_name, email, date_created, status FROM users WHERE status=?;"
 )
 
 func (user *User) Get() *errors.RestErr {
@@ -25,11 +25,10 @@ func (user *User) Get() *errors.RestErr {
 	statement, err := users_db.Client.Prepare(queryGetUser)
 
 	if err != nil {
-		fmt.Println(err.Error())
 		return errors.NewInternalServerError(err.Error())
 	}
 
-	defer checkIfDatabaseIsClosed(statement)
+	defer checkIfClosed(statement)
 
 	row := statement.QueryRow(&user.Id)
 	if err := row.Scan(&user.Id, &user.FirstName, &user.LastName, &user.Email, &user.DateCreated); err != nil {
@@ -45,11 +44,9 @@ func (user *User) Save() *errors.RestErr {
 	if err != nil {
 		return errors.NewInternalServerError(err.Error())
 	}
-	defer checkIfDatabaseIsClosed(statement)
+	defer checkIfClosed(statement)
 
-	user.DateCreated = date.GetNowString()
-
-	insertResult, err := statement.Exec(user.FirstName, user.LastName, user.Email, user.DateCreated)
+	insertResult, err := statement.Exec(user.FirstName, user.LastName, user.Email, user.DateCreated, user.Password, user.Status)
 
 	if err != nil {
 		return mysql.ParseError(err)
@@ -70,7 +67,7 @@ func (user *User) Update() *errors.RestErr {
 	if err != nil {
 		return errors.NewInternalServerError(err.Error())
 	}
-	defer checkIfDatabaseIsClosed(statement)
+	defer checkIfClosed(statement)
 
 	_, err = statement.Exec(user.FirstName, user.LastName, user.Email, user.Id)
 	if err != nil {
@@ -86,7 +83,7 @@ func (user *User) Delete() *errors.RestErr {
 	if err != nil {
 		return errors.NewInternalServerError(err.Error())
 	}
-	defer checkIfDatabaseIsClosed(statement)
+	defer checkIfClosed(statement)
 
 	_, err = statement.Exec(user.Id)
 	if err != nil {
@@ -96,9 +93,47 @@ func (user *User) Delete() *errors.RestErr {
 	return nil
 }
 
-func checkIfDatabaseIsClosed(statement *sql.Stmt) *errors.RestErr {
-	if err := statement.Close(); err != nil {
-		return errors.NewInternalServerError(fmt.Sprintf("Failed to close the user database %s", err.Error()))
+func (user *User) FindByStatus(status string) (*[]User, *errors.RestErr) {
+	statement, err := users_db.Client.Prepare(queryFindUserByStatus)
+
+	if err != nil {
+		return nil, errors.NewInternalServerError(err.Error())
+	}
+	defer checkIfClosed(statement)
+
+	rows, err := statement.Query(status)
+	if err != nil {
+		return nil, mysql.ParseError(err)
+	}
+	defer checkIfClosed(rows)
+
+	results := make([]User, 0)
+	for rows.Next(){
+		var user User
+		if err := rows.Scan(&user.Id, &user.FirstName, &user.LastName, &user.Email, &user.DateCreated, &user.Status); err != nil{
+			return nil, mysql.ParseError(err)
+		}
+		results = append(results, user)
+	}
+
+	if len(results) == 0{
+		return nil, errors.NewNotFoundError(fmt.Sprintf("No user matching status %s", status))
+	}
+
+	return &results, nil
+}
+
+
+func checkIfClosed(data interface{}) *errors.RestErr {
+	switch data.(type) {
+	case *sql.Stmt:
+		if err := data.(*sql.Stmt).Close(); err != nil {
+			return errors.NewInternalServerError(fmt.Sprintf("Failed to close %s", err.Error()))
+		}
+	case *sql.Rows:
+		if err := data.(*sql.Rows).Close(); err != nil {
+			return errors.NewInternalServerError(fmt.Sprintf("Failed to close %s", err.Error()))
+		}
 	}
 	return nil
 }
