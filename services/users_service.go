@@ -14,7 +14,22 @@ const (
 	emailRegex = "^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"
 )
 
-func GetUser(userId int64) (*users.User, *errors.RestErr) {
+var (
+	UsersService usersServiceInterface = &usersService{}
+)
+
+type usersService struct {}
+
+type usersServiceInterface interface {
+	GetUser(int64) (*users.User, *errors.RestErr)
+	CreateUser(users.User) (*users.User, *errors.RestErr)
+	UpdateUser(users.User, bool) (*users.User, *errors.RestErr)
+	DeleteUser(userId int64) (*users.User, *errors.RestErr)
+	SearchUsers(status string) (users.Users , *errors.RestErr)
+}
+
+
+func (s *usersService) GetUser(userId int64) (*users.User, *errors.RestErr) {
 	result := &users.User{Id: userId}
 	if err := result.Get(); err != nil {
 		return nil, err
@@ -22,7 +37,7 @@ func GetUser(userId int64) (*users.User, *errors.RestErr) {
 	return result, nil
 }
 
-func CreateUser(user users.User) (*users.User, *errors.RestErr) {
+func (s *usersService) CreateUser(user users.User) (*users.User, *errors.RestErr) {
 	if err := user.Validate(); err != nil {
 		return nil, err
 	}
@@ -37,8 +52,8 @@ func CreateUser(user users.User) (*users.User, *errors.RestErr) {
 	return &user, nil
 }
 
-func UpdateUser(user users.User, isPatch bool) (*users.User, *errors.RestErr) {
-	current, err := GetUser(user.Id)
+func (s *usersService) UpdateUser(user users.User, isPatch bool) (*users.User, *errors.RestErr) {
+	current, err := s.GetUser(user.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +91,7 @@ skip:
 	return current, nil
 }
 
-func DeleteUser(userId int64) (*users.User, *errors.RestErr) {
+func (s *usersService)DeleteUser(userId int64) (*users.User, *errors.RestErr) {
 	result := &users.User{Id: userId}
 	if err := result.Delete(); err != nil {
 		return nil, err
@@ -84,7 +99,7 @@ func DeleteUser(userId int64) (*users.User, *errors.RestErr) {
 	return result, nil
 }
 
-func FindUsers(status string) (*[]users.User , *errors.RestErr){
+func (s *usersService)SearchUsers(status string) (users.Users , *errors.RestErr){
 	user := &users.User{}
 	return user.FindByStatus(status)
 }

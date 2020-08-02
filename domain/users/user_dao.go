@@ -93,7 +93,7 @@ func (user *User) Delete() *errors.RestErr {
 	return nil
 }
 
-func (user *User) FindByStatus(status string) (*[]User, *errors.RestErr) {
+func (user *User) FindByStatus(status string) ([]User, *errors.RestErr) {
 	statement, err := users_db.Client.Prepare(queryFindUserByStatus)
 
 	if err != nil {
@@ -108,21 +108,20 @@ func (user *User) FindByStatus(status string) (*[]User, *errors.RestErr) {
 	defer checkIfClosed(rows)
 
 	results := make([]User, 0)
-	for rows.Next(){
+	for rows.Next() {
 		var user User
-		if err := rows.Scan(&user.Id, &user.FirstName, &user.LastName, &user.Email, &user.DateCreated, &user.Status); err != nil{
+		if err := rows.Scan(&user.Id, &user.FirstName, &user.LastName, &user.Email, &user.DateCreated, &user.Status); err != nil {
 			return nil, mysql.ParseError(err)
 		}
 		results = append(results, user)
 	}
 
-	if len(results) == 0{
+	if len(results) == 0 {
 		return nil, errors.NewNotFoundError(fmt.Sprintf("No user matching status %s", status))
 	}
 
-	return &results, nil
+	return results, nil
 }
-
 
 func checkIfClosed(data interface{}) *errors.RestErr {
 	switch data.(type) {
