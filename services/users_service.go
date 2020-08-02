@@ -4,6 +4,7 @@ package services
 
 import (
 	"github.com/AlexHusleag/bookstore_users-api/domain/users"
+	"github.com/AlexHusleag/bookstore_users-api/utils/crypto"
 	"github.com/AlexHusleag/bookstore_users-api/utils/date"
 	"github.com/AlexHusleag/bookstore_users-api/utils/errors"
 	"regexp"
@@ -27,6 +28,7 @@ func CreateUser(user users.User) (*users.User, *errors.RestErr) {
 	}
 
 	user.DateCreated = date.GetNowString()
+	user.Password = crypto.GetSHA(user.Password)
 
 	if err := user.Save(); err != nil {
 		return nil, err
