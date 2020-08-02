@@ -16,7 +16,7 @@ import (
 	"strconv"
 )
 
-func TestServiceInterface(){}
+func TestServiceInterface() {}
 
 func CreateUser(c *gin.Context) {
 	var user users.User
@@ -102,10 +102,10 @@ func DeleteUser(c *gin.Context) {
 	c.JSON(http.StatusOK, map[string]string{"Status": "User deleted"})
 }
 
-func Search(c *gin.Context){
+func Search(c *gin.Context) {
 	status := c.Query("status")
 	users, err := services.UsersService.SearchUsers(status)
-	if err != nil{
+	if err != nil {
 		c.JSON(err.Status, err)
 		return
 	}
