@@ -12,8 +12,8 @@ type User struct {
 	LastName    string `json:"last_name"`
 	Email       string `json:"email"`
 	DateCreated string `json:"date_created"`
-	Status 		string `json:"status"`
-	Password	string `json:"-"`
+	Status      string `json:"status"`
+	Password    string `json:"-"`
 }
 
 type Users []User
@@ -28,6 +28,10 @@ func (user *User) Validate() *errors.RestErr {
 
 	if user.Email == "" || re.MatchString(user.Email) == false {
 		return errors.NewBadRequestError("Invalid Email Address")
+	}
+
+	if user.Password == "" {
+		return errors.NewBadRequestError("Invalid Password")
 	}
 	return nil
 }
